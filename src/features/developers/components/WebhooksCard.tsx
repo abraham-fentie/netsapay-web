@@ -17,7 +17,8 @@ export function WebhooksCard() {
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!url.startsWith("https://")) { setError("Use an https:// address on your server."); return; }
+    if (!url.trim()) { setError("Enter the address on your server where we should send payment updates."); return; }
+    if (!url.trim().startsWith("https://")) { setError("Use an https:// address on your server."); return; }
     const ep = await run(() => developersApi.createEndpoint({ url: url.trim(), events: ["*"] }));
     if (ep) { setSecret({ title: "Webhook signing secret", value: ep.secret }); setUrl(""); endpoints.reload(); }
   };
@@ -52,11 +53,11 @@ export function WebhooksCard() {
 
   return (
     <>
-      <Card title="Webhooks" description="We send signed events (payment succeeded, refund, payout, dispute) to your server. Verify the signature with the secret.">
+      <Card title="2. Webhooks (optional, recommended)" description="Not needed to create API keys. This is the address on your server where Netsa Pay sends payment updates (payment succeeded, refund, payout, dispute), so you can mark orders paid. Add it when your server is ready; verify each event with the signing secret.">
         <div className="stack">
           {secret && <SecretReveal title={secret.title} value={secret.value} onDone={() => setSecret(null)} />}
           <form className="form-grid" onSubmit={add} style={{ alignItems: "end" }}>
-            <Input label="Endpoint URL" type="url" required placeholder="https://shop.example/webhooks/paygate" value={url} onChange={(e) => setUrl(e.target.value)} />
+            <Input label="Webhook URL (where we send payment updates)" type="url" placeholder="https://yourshop.com/webhooks/netsapay" value={url} onChange={(e) => setUrl(e.target.value)} />
             <div><Button type="submit" variant="primary" icon="plus" loading={busy}>Add endpoint</Button></div>
           </form>
           <ErrorText error={error} />
