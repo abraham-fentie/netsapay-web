@@ -17,6 +17,10 @@ export type Payment = {
   customer_phone?: string;
   checkout_url?: string;
   failure_reason?: string;
+  /** The provider charged the customer this amount but the payment was refused: not the merchant's money; Netsa Pay returns it. */
+  unmatched_amount?: number;
+  unmatched_currency?: string;
+  unmatched_returned?: boolean;
   expires_at?: string;
   created_at: string;
 };
@@ -26,6 +30,10 @@ export type PaymentEvent = { id: number; from_status: string; to_status: string;
 export type Refund = {
   id: string; payment_id: string; amount: number; currency: string; status: string; reason?: string;
   failure_reason?: string; created_at: string; updated_at?: string;
+  /** payment: the merchant's refund. unmatched: Netsa Pay returned money taken for a refused payment. */
+  kind?: "payment" | "unmatched";
+  /** Sent by hand by Netsa Pay finance (bank transfer); pending until confirmed. */
+  manual?: boolean;
 };
 
 export const REFUND_STATUSES = ["pending", "succeeded", "failed"] as const;

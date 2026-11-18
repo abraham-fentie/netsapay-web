@@ -1,7 +1,8 @@
 "use client";
-import { Alert, Card, CopyButton, DataTable, DetailList, ErrorText, PageHeader, StatusBadge, Timeline } from "@/components/ui";
+import { Alert, Button, Card, useToast, CopyButton, DataTable, DetailList, ErrorText, PageHeader, StatusBadge, Timeline } from "@/components/ui";
 import Link from "next/link";
 import { disputesApi } from "@/features/disputes/api";
+import { useAction } from "@/hooks/useAction";
 import { useResource } from "@/hooks/useResource";
 import { dateTime, humanize, money } from "@/lib/format";
 import { paymentsApi } from "../api";
@@ -16,6 +17,8 @@ export function PaymentDetailScreen({ id }: { id: string }) {
   // shown and the API still refuses to refund disputed money.
   const disputes = useResource(() => disputesApi.forPayment(id), [id]);
   const p = payment.data;
+  const check = useAction();
+  const toast = useToast();
   const back = { href: "/payments", label: "Payments" };
 
   if (!p) return <><PageHeader title="Payment" back={back} />{payment.loading ? <p className="muted">Loading…</p> : <ErrorText error={payment.error} />}</>;
@@ -31,12 +34,39 @@ export function PaymentDetailScreen({ id }: { id: string }) {
   // The API notes in the history when the same order was paid twice.
   const duplicate = events.data?.data.find((e) => e.reason?.startsWith("duplicate payment"));
   const reload = () => { payment.reload(); events.reload(); refunds.reload(); disputes.reload(); };
+  // Ask the provider now; useful when the customer says the money was taken.
+  const canCheck = p.status === "processing" || p.status === "failed" || p.status === "expired";
+  const checkNow = async () => {
+    const before = p.status;
+    const after = await check.run(() => paymentsApi.sync(p.id));
+    if (after) {
+      toast(after.status === before ? `Checked: the provider confirms ${humanize(after.status)}.` : `Updated: the payment is now ${humanize(after.status)}.`);
+      reload();
+    }
+  };
 
   return (
     <>
       <PageHeader title={money(p.amount, p.currency)} badge={<StatusBadge status={p.status} />} back={back}
         description={<>{p.reference}{p.description ? ` · ${p.description}` : ""}</>} />
       {p.failure_reason && <Alert tone="danger" title="Why it failed" >{humanize(p.failure_reason)}</Alert>}
+      {!!p.unmatched_amount && (
+        <div style={{ marginTop: 16 }}>
+          <Alert tone={p.unmatched_returned ? "info" : "warning"} title={p.unmatched_returned ? "Returned to the customer" : "Customer charged a different amount"}>
+            The provider took {money(p.unmatched_amount, p.unmatched_currency || p.currency)} from the customer instead of {money(p.amount, p.currency)}, so
+            this payment was not accepted. This money is not in your balance.{" "}
+            {p.unmatched_returned ? "Netsa Pay has returned it to the customer." : "Netsa Pay returns it to the customer; no action is needed from you."}
+            {" "}Create a new payment if the customer still wants the order.
+          </Alert>
+        </div>
+      )}
+      {canCheck && (
+        <div className="cluster" style={{ marginTop: 16 }}>
+          <Button size="sm" icon="refresh" loading={check.busy} onClick={checkNow}>Check with provider</Button>
+          <span className="small muted">Customer says the money was taken? We ask the provider now.</span>
+          <ErrorText error={check.error} />
+        </div>
+      )}
       {duplicate && (
         <div style={{ marginTop: p.failure_reason ? 16 : 0 }}>
           <Alert tone="warning" title="This order was paid twice">
@@ -71,7 +101,10 @@ export function PaymentDetailScreen({ id }: { id: string }) {
                 { key: "status", header: "Status", cell: (r) => (
                   <span className="stack" style={{ gap: 2 }}>
                     <StatusBadge status={r.status} />
-                    {r.status === "pending" && <span className="muted small">Processing with the provider; the amount is held from your balance.</span>}
+                    {r.kind === "unmatched" && <span className="muted small">Returned by Netsa Pay (not from your balance).</span>}
+                    {r.status === "pending" && r.kind !== "unmatched" && <span className="muted small">{r.manual
+                      ? "Netsa Pay finance sends this refund by bank transfer; the amount is held from your balance until then."
+                      : "Processing with the provider; the amount is held from your balance."}</span>}
                     {r.status === "failed" && r.failure_reason && <span className="muted small">{humanize(r.failure_reason)}. The amount is back in your balance.</span>}
                   </span>
                 ) },

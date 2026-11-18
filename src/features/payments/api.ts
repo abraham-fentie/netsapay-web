@@ -4,6 +4,8 @@ import type { Payment, PaymentEvent, Refund } from "./types";
 export const paymentsApi = {
   list: (q: URLSearchParams) => api<Page<Payment>>(`v1/payments?${q}`),
   get: (id: string) => api<Payment>(`v1/payments/${seg(id)}`),
+  /** Ask the provider for the payment's status now ("the customer says the money was taken"). */
+  sync: (id: string) => api<Payment>(`v1/payments/${seg(id)}/sync`, { method: "POST" }),
   events: (id: string) => api<Page<PaymentEvent>>(`v1/payments/${seg(id)}/events`),
   refunds: (id: string) => api<Page<Refund>>(`v1/refunds?payment_id=${seg(id)}&limit=100`),
   refund: (body: { payment_id: string; amount?: number; reason?: string }, idempotencyKey: string) =>

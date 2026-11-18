@@ -15,6 +15,8 @@ const columns: Column<Refund>[] = [
     <span className="stack" style={{ gap: 2 }}>
       <StatusBadge status={r.status} />
       {r.status === "failed" && r.failure_reason && <span className="small muted">{humanize(r.failure_reason)}</span>}
+      {r.status === "pending" && r.manual && <span className="small muted">Sent by bank transfer by Netsa Pay finance</span>}
+      {r.kind === "unmatched" && <span className="small muted">Returned by Netsa Pay, not from your balance</span>}
     </span>
   ) },
   { key: "payment", header: "Payment", cell: (r) => <Link href={`/payments/${r.payment_id}`} className="mono small">{r.payment_id.slice(0, 8)}…</Link> },
