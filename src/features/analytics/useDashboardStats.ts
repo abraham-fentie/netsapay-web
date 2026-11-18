@@ -1,14 +1,12 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import type { Payment } from "@/features/payments";
 import { errorMessage } from "@/lib/api/client";
-import { paymentsBetween } from "./api";
-import { byMethod, daily, totals, windows, type Period } from "./stats";
+import { paymentStats, type StatsResponse } from "./api";
+import { fromStats, windows, type Period } from "./stats";
 
-/** Loads this period and the one before it, then computes the dashboard numbers. */
+/** This period and the one before it (two requests in parallel), as dashboard numbers. */
 export function useDashboardStats(environment: string, currency: string, period: Period) {
-  const [rows, setRows] = useState<Payment[] | null>(null);
-  const [complete, setComplete] = useState(true);
+  const [data, setData] = useState<{ cur: StatsResponse; prev: StatsResponse } | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
@@ -17,20 +15,16 @@ export function useDashboardStats(environment: string, currency: string, period:
   useEffect(() => {
     const ctl = new AbortController();
     setLoading(true); setError("");
-    paymentsBetween(environment, w.prevStart, w.end, ctl.signal)
-      .then((r) => { setRows(r.rows); setComplete(r.complete); })
+    Promise.all([
+      paymentStats(environment, currency, w.start, w.end, ctl.signal),
+      paymentStats(environment, currency, w.prevStart, w.start, ctl.signal),
+    ])
+      .then(([cur, prev]) => setData({ cur, prev }))
       .catch((e) => { if (!ctl.signal.aborted) setError(errorMessage(e)); })
       .finally(() => { if (!ctl.signal.aborted) setLoading(false); });
     return () => ctl.abort();
-  }, [environment, w]);
+  }, [environment, currency, w]);
 
-  const stats = useMemo(() => {
-    if (!rows) return null;
-    const mine = rows.filter((p) => p.currency === currency);
-    const cur = mine.filter((p) => Date.parse(p.created_at) >= w.start.getTime());
-    const prev = mine.filter((p) => Date.parse(p.created_at) < w.start.getTime());
-    return { current: totals(cur), previous: totals(prev), series: daily(cur, w.start, period), methods: byMethod(cur) };
-  }, [rows, currency, w, period]);
-
-  return { stats, loading, error, complete, reload: () => setTick((n) => n + 1) };
+  const stats = useMemo(() => (data ? fromStats(data.cur, data.prev) : null), [data]);
+  return { stats, loading, error, reload: () => setTick((n) => n + 1) };
 }

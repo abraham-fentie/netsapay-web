@@ -3,7 +3,7 @@ import { api, seg, type Page } from "@/lib/api/client";
 /** allowed_ips: CIDR ranges the key may be used from; empty = any address. */
 export type ApiKey = { id: string; name: string; prefix: string; last4: string; environment: string; scopes: string[]; allowed_ips?: string[]; status: string; expires_at?: string; last_used_at?: string; created_at: string };
 export type Endpoint = { id: string; url: string; events: string[]; active: boolean; created_at: string };
-export type Delivery = { id: string; endpoint_id: string; event_type: string; status: string; attempts: number; last_status_code?: number; last_error?: string; next_attempt_at?: string; delivered_at?: string };
+export type Delivery = { id: string; endpoint_id: string; event_type: string; status: string; attempts: number; last_status_code?: number; last_error?: string; next_attempt_at?: string; delivered_at?: string; created_at?: string };
 type WithSecret<T> = T & { secret: string };
 
 export const SCOPES = [
@@ -30,6 +30,5 @@ export const developersApi = {
   createEndpoint: (body: { url: string; events: string[] }) => api<WithSecret<Endpoint>>("v1/webhook-endpoints", { method: "POST", body }),
   rotateSecret: (id: string) => api<{ secret: string }>(`v1/webhook-endpoints/${seg(id)}/rotate-secret`, { method: "POST" }),
   deleteEndpoint: (id: string) => api(`v1/webhook-endpoints/${seg(id)}`, { method: "DELETE" }),
-  deliveries: () => api<Page<Delivery>>("v1/webhook-deliveries?limit=20"),
   retry: (id: string) => api(`v1/webhook-deliveries/${seg(id)}/retry`, { method: "POST" }),
 };

@@ -1,14 +1,18 @@
 "use client";
 import { useState } from "react";
-import { Button, Card, DataTable, EmptyState, ErrorText, Input, SecretReveal, StatusBadge, useConfirm, useToast, type Column } from "@/components/ui";
+import { Button, Card, DataTable, EmptyState, ErrorText, Input, LoadMore, SecretReveal, Select, StatusBadge, useConfirm, useToast, type Column } from "@/components/ui";
 import { useAction } from "@/hooks/useAction";
+import { useDebounced } from "@/hooks/useDebounced";
+import { usePagedList } from "@/hooks/usePagedList";
 import { useResource } from "@/hooks/useResource";
-import { dateTime } from "@/lib/format";
+import { dateTime, humanize } from "@/lib/format";
 import { developersApi, type Delivery, type Endpoint } from "../api";
 
 export function WebhooksCard() {
   const endpoints = useResource(() => developersApi.endpoints(), []);
-  const deliveries = useResource(() => developersApi.deliveries(), []);
+  const [df, setDf] = useState({ status: "", q: "" });
+  const dq = useDebounced(df.q);
+  const deliveries = usePagedList<Delivery>("v1/webhook-deliveries", { status: df.status, q: dq });
   const [url, setUrl] = useState("");
   const [secret, setSecret] = useState<{ title: string; value: string } | null>(null);
   const { busy, error, setError, run } = useAction();
@@ -47,6 +51,7 @@ export function WebhooksCard() {
     { key: "status", header: "Status", cell: (d) => <StatusBadge status={d.status} /> },
     { key: "attempts", header: "Attempts", align: "right", cell: (d) => <span className="num">{d.attempts}</span> },
     { key: "answer", header: "Last answer", cell: (d) => <span className="small muted">{[d.last_status_code || "", d.last_error].filter(Boolean).join(" ") || "—"}</span> },
+    { key: "created", header: "Event at", cell: (d) => <span className="small muted">{d.created_at ? dateTime(d.created_at) : "—"}</span> },
     { key: "when", header: "Delivered", cell: (d) => <span className="small muted">{d.delivered_at ? dateTime(d.delivered_at) : "—"}</span> },
     { key: "actions", header: <span className="sr-only">Actions</span>, align: "right", cell: (d) => d.status !== "delivered" && <Button size="sm" icon="refresh" onClick={() => retry(d)}>Retry</Button> },
   ];
@@ -67,9 +72,18 @@ export function WebhooksCard() {
             empty={<EmptyState icon="link" title="No endpoints yet" />} />
         </div>
       </Card>
-      <Card title="Recent deliveries" actions={<Button size="sm" variant="ghost" icon="refresh" onClick={deliveries.reload}>Refresh</Button>} flush>
-        <DataTable label="Webhook deliveries" columns={dlColumns} rows={deliveries.data?.data} rowKey={(d) => d.id} loading={deliveries.loading}
-          empty={<EmptyState icon="inbox" title="No deliveries yet" description="Events appear here once payments happen." />} />
+      <Card title="Deliveries" actions={<Button size="sm" variant="ghost" icon="refresh" onClick={deliveries.reload}>Refresh</Button>} flush>
+        <div className="form-grid" style={{ alignItems: "end", padding: 16 }}>
+          <Select label="Status" value={df.status} placeholder="All statuses" options={["pending", "delivered", "failed"].map((s) => ({ value: s, label: humanize(s) }))}
+            onChange={(e) => setDf({ ...df, status: e.target.value })} />
+          <Input label="Search" type="search" placeholder="Event type (payment.) or event ID" value={df.q} onChange={(e) => setDf({ ...df, q: e.target.value })} />
+        </div>
+        <ErrorText error={deliveries.error} />
+        <DataTable label="Webhook deliveries" columns={dlColumns} rows={deliveries.rows} rowKey={(d) => d.id} loading={deliveries.loading}
+          empty={df.status || df.q
+            ? <EmptyState icon="search" title="No deliveries match" description="Try other filters." />
+            : <EmptyState icon="inbox" title="No deliveries yet" description="Events appear here once payments happen." />} />
+        <LoadMore count={deliveries.rows.length} hasMore={deliveries.hasMore} loading={deliveries.loading} onMore={deliveries.loadMore} noun="deliveries" />
       </Card>
     </>
   );

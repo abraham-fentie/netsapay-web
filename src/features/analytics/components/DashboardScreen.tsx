@@ -7,7 +7,6 @@ import { CURRENCIES, type Currency } from "@/lib/format";
 import { useEnv } from "@/providers/EnvProvider";
 import { isVerified, useSession } from "@/providers/SessionProvider";
 import Link from "next/link";
-import { MAX_PAYMENTS } from "../api";
 import type { Metric, Period } from "../stats";
 import { useDashboardStats } from "../useDashboardStats";
 import { KpiGrid } from "./KpiGrid";
@@ -29,7 +28,7 @@ export function DashboardScreen() {
   const [currency, setCurrency] = useState<Currency>("ETB");
   const [period, setPeriod] = useState<Period>(7);
   const [metric, setMetric] = useState<Metric>("revenue");
-  const { stats, loading, error, complete, reload } = useDashboardStats(env, currency, period);
+  const { stats, loading, error, reload } = useDashboardStats(env, currency, period);
   const recent = useResource(() => paymentsApi.list(new URLSearchParams({ environment: env, limit: "8" })), [env]);
   const first = me?.name?.split(/\s+/)[0];
 
@@ -38,7 +37,7 @@ export function DashboardScreen() {
       <div className={s.greet}>
         <div>
           <h1>{greeting()}{first ? `, ${first}` : ""}</h1>
-          <p>Welcome back to {merchant?.name ?? "Paygate"} 👋</p>
+          <p>Welcome back to {merchant?.name ?? "Netsa Pay"} 👋</p>
         </div>
         <div className="cluster">
           <Segmented label="Currency" value={currency} onChange={setCurrency} options={CURRENCIES.map((c) => ({ value: c, label: c }))} />
@@ -66,7 +65,6 @@ export function DashboardScreen() {
             <MethodsCard methods={stats?.methods ?? []} currency={currency} loading={loading} />
           </div>
         </div>
-        {!complete && <p className={s.partial}>Numbers are based on the latest {MAX_PAYMENTS.toLocaleString()} payments of the period. Download a report for the full figures.</p>}
         <TransactionsTable rows={recent.data?.data ?? []} loading={recent.loading} seeAll subtitle="The latest payments from your customers." />
       </div>
     </>

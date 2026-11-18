@@ -23,6 +23,11 @@ export type Payment = {
 
 export type PaymentEvent = { id: number; from_status: string; to_status: string; source: string; reason?: string; created_at: string };
 
-export type Refund = { id: string; payment_id: string; amount: number; currency: string; status: string; reason?: string; created_at: string };
+export type Refund = {
+  id: string; payment_id: string; amount: number; currency: string; status: string; reason?: string;
+  failure_reason?: string; created_at: string; updated_at?: string;
+};
+
+export const REFUND_STATUSES = ["pending", "succeeded", "failed"] as const;
 
 export const PAYMENT_STATUSES = ["pending", "processing", "succeeded", "failed", "expired", "partially_refunded", "refunded"] as const;

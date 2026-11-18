@@ -12,7 +12,7 @@ export type Page<T> = { data: T[]; has_more?: boolean; next_cursor?: string };
 
 type Options = { method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE"; body?: unknown; form?: FormData; idempotencyKey?: string; signal?: AbortSignal };
 
-const CSRF_HEADER = { "X-Requested-With": "paygate-web" };
+const CSRF_HEADER = { "X-Requested-With": "netsapay-web" };
 
 export async function api<T = unknown>(path: string, opts: Options = {}): Promise<T> {
   const headers: Record<string, string> = { ...CSRF_HEADER };

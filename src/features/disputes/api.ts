@@ -9,13 +9,16 @@ export type Dispute = {
 };
 
 export const disputesApi = {
-  list: () => api<Page<Dispute>>("v1/disputes"),
+  /** Disputes on one payment (open, won or lost). */
+  forPayment: (paymentId: string) => api<Page<Dispute>>(`v1/disputes?payment_id=${seg(paymentId)}&limit=100`),
   get: (id: string) => api<Dispute>(`v1/disputes/${seg(id)}`),
   saveEvidence: (id: string, form: FormData) => api<Dispute>(`v1/disputes/${seg(id)}/evidence`, { method: "POST", form }),
   submit: (id: string) => api<Dispute>(`v1/disputes/${seg(id)}/submit`, { method: "POST" }),
   accept: (id: string) => api<Dispute>(`v1/disputes/${seg(id)}/accept`, { method: "POST" }),
   fileUrl: (id: string, fileId: string) => `/api/proxy/v1/disputes/${seg(id)}/files/${seg(fileId)}`,
 };
+
+export const DISPUTE_STATUSES = ["needs_response", "under_review", "won", "lost"] as const;
 
 export function daysLeft(due: string): number {
   return Math.ceil((new Date(due).getTime() - Date.now()) / 864e5);

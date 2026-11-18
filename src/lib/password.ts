@@ -15,7 +15,7 @@ export type PasswordCheck = {
 
 // Passwords and words attackers try first (checked as parts of the password too).
 const COMMON = ["password", "passw0rd", "qwerty", "123456", "123123", "111111", "abc123", "letmein", "welcome", "admin", "login", "iloveyou",
-  "monkey", "dragon", "football", "sunshine", "master", "secret", "paygate", "ethiopia", "addis", "abeba", "selam", "habesha", "telebirr"];
+  "monkey", "dragon", "football", "sunshine", "master", "secret", "paygate", "netsapay", "netsa", "ethiopia", "addis", "abeba", "selam", "habesha", "telebirr"];
 
 const SEQUENCES = ["abcdefghijklmnopqrstuvwxyz", "qwertyuiopasdfghjklzxcvbnm", "01234567890"];
 

@@ -69,7 +69,7 @@ export function describeActor(e: AuditEntry, me?: { id: string; name: string } |
   switch (e.actor_kind) {
     case "user": return e.actor_label || `Team member ${short}`;
     case "api_key": return `API key ${short}`;
-    case "staff": return "Paygate staff";
+    case "staff": return "Netsa Pay staff";
     case "anonymous": return e.details?.email ? `Sign-in as ${e.details.email}` : "Not signed in";
     default: return e.actor_kind;
   }

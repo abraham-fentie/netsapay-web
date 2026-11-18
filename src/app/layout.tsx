@@ -5,8 +5,8 @@ import { isTheme, THEME_COOKIE } from "@/lib/theme";
 import { AppProviders } from "@/providers/AppProviders";
 
 export const metadata: Metadata = {
-  title: { default: "Paygate", template: "%s · Paygate" },
-  description: "Paygate merchant dashboard",
+  title: { default: "Netsa Pay", template: "%s · Netsa Pay" },
+  description: "Netsa Pay merchant dashboard",
   robots: { index: false, follow: false },
 };
 

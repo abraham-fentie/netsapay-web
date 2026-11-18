@@ -40,7 +40,7 @@ function Workspace() {
   const { env, setEnv, liveAllowed } = useEnv();
   return (
     <div className={s.workspace}>
-      <Link href="/" className={s.brand}><span className={s.logo} aria-hidden="true">P</span>Paygate</Link>
+      <Link href="/" className={s.brand}><span className={s.logo} aria-hidden="true">N</span>Netsa Pay</Link>
       <Menu align="start" width={230} trigger={(p) => (
         <button {...p} type="button" className={s.switcher} aria-label={`Mode: ${env}. Switch mode`}><Icon name="chevronsUpDown" size={15} /></button>
       )}>

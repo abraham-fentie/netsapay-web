@@ -42,7 +42,7 @@ export function LoginForm() {
   if (step === "mfa") {
     return (
       <form className="stack" onSubmit={submit}>
-        <AuthHeading title="Two-factor authentication" subtitle="Open Microsoft Authenticator (or your authenticator app) and enter the 6-digit code for Paygate. A recovery code also works." />
+        <AuthHeading title="Two-factor authentication" subtitle="Open Microsoft Authenticator (or your authenticator app) and enter the 6-digit code for Netsa Pay. A recovery code also works." />
         <Input label="Authentication code" otp autoFocus inputMode="numeric" autoComplete="one-time-code" required maxLength={20} value={code} onChange={(e) => setCode(e.target.value)} />
         <ErrorText error={error} />
         <Button type="submit" variant="primary" block loading={busy}>Verify</Button>
@@ -61,7 +61,7 @@ export function LoginForm() {
       <div className="cluster-between small"><span /><Link href="/forgot">Forgot password?</Link></div>
       <ErrorText error={error} />
       <Button type="submit" variant="primary" block loading={busy}>Sign in</Button>
-      <p className="small muted">New to Paygate? <Link href="/signup">Create an account</Link></p>
+      <p className="small muted">New to Netsa Pay? <Link href="/signup">Create an account</Link></p>
     </form>
   );
 }

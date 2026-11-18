@@ -1,5 +1,7 @@
 "use client";
 import { Alert, Card, CopyButton, DataTable, DetailList, ErrorText, PageHeader, StatusBadge, Timeline } from "@/components/ui";
+import Link from "next/link";
+import { disputesApi } from "@/features/disputes/api";
 import { useResource } from "@/hooks/useResource";
 import { dateTime, humanize, money } from "@/lib/format";
 import { paymentsApi } from "../api";
@@ -10,20 +12,39 @@ export function PaymentDetailScreen({ id }: { id: string }) {
   const payment = useResource(() => paymentsApi.get(id), [id]);
   const events = useResource(() => paymentsApi.events(id), [id]);
   const refunds = useResource(() => paymentsApi.refunds(id), [id]);
+  // Team members without dispute access get an error here: then nothing is
+  // shown and the API still refuses to refund disputed money.
+  const disputes = useResource(() => disputesApi.forPayment(id), [id]);
   const p = payment.data;
   const back = { href: "/payments", label: "Payments" };
 
   if (!p) return <><PageHeader title="Payment" back={back} />{payment.loading ? <p className="muted">Loading…</p> : <ErrorText error={payment.error} />}</>;
 
-  const refundable = p.status === "succeeded" || p.status === "partially_refunded" ? p.amount - p.refunded_amount : 0;
-  const reload = () => { payment.reload(); events.reload(); refunds.reload(); };
+  // Refunds still processing are already promised to the customer: the API
+  // counts them, so the form does too. (Money under a dispute is refused by
+  // the API with a clear message.)
+  const pendingRefunds = (refunds.data?.data ?? []).filter((r) => r.status === "pending").reduce((sum, r) => sum + r.amount, 0);
+  // Money under an open or lost dispute goes back through the chargeback: it cannot be refunded too.
+  const openDisputes = (disputes.data?.data ?? []).filter((d) => d.status !== "won");
+  const disputed = openDisputes.reduce((sum, d) => sum + d.amount, 0);
+  const refundable = p.status === "succeeded" || p.status === "partially_refunded" ? Math.max(p.amount - p.refunded_amount - pendingRefunds - disputed, 0) : 0;
+  // The API notes in the history when the same order was paid twice.
+  const duplicate = events.data?.data.find((e) => e.reason?.startsWith("duplicate payment"));
+  const reload = () => { payment.reload(); events.reload(); refunds.reload(); disputes.reload(); };
 
   return (
     <>
       <PageHeader title={money(p.amount, p.currency)} badge={<StatusBadge status={p.status} />} back={back}
         description={<>{p.reference}{p.description ? ` · ${p.description}` : ""}</>} />
       {p.failure_reason && <Alert tone="danger" title="Why it failed" >{humanize(p.failure_reason)}</Alert>}
-      <div className="split" style={{ marginTop: p.failure_reason ? 16 : 0 }}>
+      {duplicate && (
+        <div style={{ marginTop: p.failure_reason ? 16 : 0 }}>
+          <Alert tone="warning" title="This order was paid twice">
+            {duplicate.reason} The customer was charged for reference {p.reference} more than once. Refund one of the payments.
+          </Alert>
+        </div>
+      )}
+      <div className="split" style={{ marginTop: p.failure_reason || duplicate ? 16 : 0 }}>
         <div className="stack">
           <Card title="Details">
             <DetailList items={[
@@ -34,6 +55,9 @@ export function PaymentDetailScreen({ id }: { id: string }) {
               ["Fee", money(p.fee, p.currency)],
               !!p.reserve && ["Reserve", `${money(p.reserve, p.currency)} for ${p.reserve_days} days`],
               ["Refunded", money(p.refunded_amount, p.currency)],
+              pendingRefunds > 0 && ["Refunds in progress", money(pendingRefunds, p.currency)],
+              disputed > 0 && ["Under dispute", <span className="cluster">{money(disputed, p.currency)}
+                {openDisputes.map((d) => <Link key={d.id} href={`/disputes/${d.id}`} className="small">View dispute</Link>)}</span>],
               (p.customer_name || p.customer_email || p.customer_phone) && ["Customer", [p.customer_name, p.customer_email, p.customer_phone].filter(Boolean).join(" · ")],
               ["Environment", p.environment],
               ["Created", dateTime(p.created_at)],
@@ -44,7 +68,13 @@ export function PaymentDetailScreen({ id }: { id: string }) {
             <Card title="Refunds" flush>
               <DataTable<Refund> label="Refunds" rows={refunds.data?.data} rowKey={(r) => r.id} columns={[
                 { key: "amount", header: "Amount", cell: (r) => <span className="num">{money(r.amount, r.currency)}</span> },
-                { key: "status", header: "Status", cell: (r) => <StatusBadge status={r.status} /> },
+                { key: "status", header: "Status", cell: (r) => (
+                  <span className="stack" style={{ gap: 2 }}>
+                    <StatusBadge status={r.status} />
+                    {r.status === "pending" && <span className="muted small">Processing with the provider; the amount is held from your balance.</span>}
+                    {r.status === "failed" && r.failure_reason && <span className="muted small">{humanize(r.failure_reason)}. The amount is back in your balance.</span>}
+                  </span>
+                ) },
                 { key: "date", header: "Date", cell: (r) => <span className="muted small">{dateTime(r.created_at)}</span> },
               ]} />
             </Card>

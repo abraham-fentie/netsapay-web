@@ -1,5 +1,7 @@
-// Dashboard numbers, worked out in the browser from the payments list.
+// Dashboard numbers. The sums come from the API (GET /v1/payments/stats);
+// the helpers below on Payment lists remain for small, already loaded lists.
 import type { Payment } from "@/features/payments";
+import type { StatsResponse } from "./api";
 
 export type Period = 7 | 30 | 90;
 export type Metric = "revenue" | "payments" | "rate" | "average";
@@ -69,4 +71,22 @@ export function pointValue(pt: DayPoint, metric: Metric): number | null {
 export function change(now: number | null, before: number | null): number | null {
   if (now === null || before === null || before === 0) return null;
   return (now - before) / before;
+}
+
+const withRates = (t: StatsResponse["totals"]): Totals => ({
+  ...t, rate: t.finished ? t.payments / t.finished : null, average: t.payments ? Math.round(t.revenue / t.payments) : null,
+});
+
+/** The API's sums as the dashboard's numbers. Days are YYYY-MM-DD in the browser's time zone. */
+export function fromStats(cur: StatsResponse, prev: StatsResponse) {
+  const total = cur.methods.reduce((sum, m) => sum + m.amount, 0);
+  return {
+    current: withRates(cur.totals),
+    previous: withRates(prev.totals),
+    series: cur.days.map((d): DayPoint => {
+      const [y, m, day] = d.day.split("-").map(Number);
+      return { day: new Date(y, m - 1, day), revenue: d.revenue, payments: d.payments, finished: d.finished };
+    }),
+    methods: cur.methods.map((m): MethodShare => ({ ...m, share: total ? m.amount / total : 0 })),
+  };
 }

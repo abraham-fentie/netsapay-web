@@ -24,8 +24,10 @@ const initials = (p: Payment) => {
  * The transactions table of the dashboard: search, sort, select rows,
  * export the selection, and a menu per row.
  */
-export function TransactionsTable({ rows, loading, title = "Recent transactions", subtitle, seeAll, footer, emptyText = "No payments yet." }: {
+export function TransactionsTable({ rows, loading, title = "Recent transactions", subtitle, seeAll, footer, emptyText = "No payments yet.", localSearch = true }: {
   rows: Payment[]; loading?: boolean; title?: string; subtitle?: string; seeAll?: boolean; footer?: React.ReactNode; emptyText?: string;
+  /** A box that filters the rows on screen only. Off where the page searches on the server. */
+  localSearch?: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -82,11 +84,13 @@ export function TransactionsTable({ rows, loading, title = "Recent transactions"
           <div><div className={s.title}>{title}</div>{subtitle && <div className={s.subtitle}>{subtitle}</div>}</div>
         </div>
         <div className={s.tools}>
-          <label className={s.searchBox}>
-            <span className="sr-only">Search transactions</span>
-            <Icon name="search" size={16} />
-            <input className={s.searchInput} type="search" placeholder="Search…" value={query} onChange={(e) => setQuery(e.target.value)} />
-          </label>
+          {localSearch && (
+            <label className={s.searchBox}>
+              <span className="sr-only">Filter the transactions shown</span>
+              <Icon name="search" size={16} />
+              <input className={s.searchInput} type="search" placeholder="Filter shown…" value={query} onChange={(e) => setQuery(e.target.value)} />
+            </label>
+          )}
           {seeAll && <Button onClick={() => router.push("/payments")}>See all</Button>}
         </div>
       </div>

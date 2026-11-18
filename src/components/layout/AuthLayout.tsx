@@ -6,7 +6,7 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className={s.page}>
       <aside className={s.aside}>
-        <div className={s.brand}><span className={s.logo}>P</span>Paygate</div>
+        <div className={s.brand}><span className={s.logo}>N</span>Netsa Pay</div>
         <div className={s.pitch}>
           <h2>Accept payments across Ethiopia.</h2>
           <ul>

@@ -1,15 +1,25 @@
 "use client";
-import { Button, Card, CopyButton, DataTable, EmptyState, ErrorText, PageHeader, StatusBadge, useConfirm, useToast, type Column } from "@/components/ui";
-import { useResource } from "@/hooks/useResource";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Button, Card, CopyButton, DataTable, EmptyState, ErrorText, Input, LoadMore, PageHeader, Select, StatusBadge, useConfirm, useToast, type Column } from "@/components/ui";
+import { useDebounced } from "@/hooks/useDebounced";
+import { usePagedList } from "@/hooks/usePagedList";
 import { errorMessage } from "@/lib/api/client";
 import { dateOnly, money } from "@/lib/format";
 import { useEnv } from "@/providers/EnvProvider";
 import { linksApi, type PaymentLink } from "../api";
+
+const LINK_STATUSES = [{ value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }];
 import { CreateLinkForm } from "./CreateLinkForm";
 
 export function LinksScreen() {
   const { env } = useEnv();
-  const links = useResource(() => linksApi.list(env), [env]);
+  const params = useSearchParams(); // global search opens this page with ?q=<id>
+  const [f, setF] = useState({ status: "", q: params.get("q") ?? "" });
+  useEffect(() => { const v = params.get("q"); if (v) setF((cur) => ({ ...cur, q: v })); }, [params]);
+  const q = useDebounced(f.q);
+  const links = usePagedList<PaymentLink>("v1/payment-links", { environment: env, status: f.status, q });
+  const filtered = f.status || f.q;
   const confirm = useConfirm();
   const toast = useToast();
 
@@ -36,9 +46,17 @@ export function LinksScreen() {
       <div className="stack">
         <CreateLinkForm onCreated={links.reload} />
         <Card title="Your links" flush>
+          <div className="form-grid" style={{ alignItems: "end", padding: 16 }}>
+            <Select label="Status" value={f.status} placeholder="All links" options={LINK_STATUSES} onChange={(e) => setF({ ...f, status: e.target.value })} />
+            <Input label="Search" type="search" placeholder="Description, reference or link ID" value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} />
+            {filtered && <div><Button variant="ghost" onClick={() => setF({ status: "", q: "" })}>Clear filters</Button></div>}
+          </div>
           <ErrorText error={links.error} />
-          <DataTable label="Payment links" columns={columns} rows={links.data?.data} rowKey={(l) => l.id} loading={links.loading}
-            empty={<EmptyState icon="link" title="No links yet" description="Links you create appear here." />} />
+          <DataTable label="Payment links" columns={columns} rows={links.rows} rowKey={(l) => l.id} loading={links.loading}
+            empty={filtered
+              ? <EmptyState icon="search" title="No links match" description="Try other filters." />
+              : <EmptyState icon="link" title="No links yet" description="Links you create appear here." />} />
+          <LoadMore count={links.rows.length} hasMore={links.hasMore} loading={links.loading} onMore={links.loadMore} noun="links" />
         </Card>
       </div>
     </>

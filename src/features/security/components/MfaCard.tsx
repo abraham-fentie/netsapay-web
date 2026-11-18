@@ -49,7 +49,7 @@ export function MfaCard({ required }: { required: boolean }) {
           <form onSubmit={confirm} className={s.setup}>
             <div className={s.qr}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={setup.qr_code} alt="QR code to add Paygate to your authenticator app" width={184} height={184} />
+              <img src={setup.qr_code} alt="QR code to add Netsa Pay to your authenticator app" width={184} height={184} />
             </div>
             <ol className={s.steps}>
               <li>Open <strong>Microsoft Authenticator</strong> (or Google Authenticator) and tap <strong>+</strong> → <strong>Other account</strong>.</li>

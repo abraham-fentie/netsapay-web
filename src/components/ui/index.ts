@@ -17,3 +17,4 @@ export { Stat, StatGrid } from "./Stat";
 export { Timeline, type TimelineItem } from "./Timeline";
 export { useToast } from "./Toast";
 export { Menu, MenuItem, MenuLabel, MenuSeparator } from "./Menu";
+export { LoadMore } from "./LoadMore";

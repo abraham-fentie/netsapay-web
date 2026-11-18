@@ -1,11 +1,14 @@
 "use client";
-import { useState } from "react";
-import { Card, DataTable, EmptyState, ErrorText, PageHeader, StatusBadge, type Column } from "@/components/ui";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Button, Card, DataTable, EmptyState, ErrorText, Input, LoadMore, PageHeader, Select, StatusBadge, type Column } from "@/components/ui";
 import { BalanceCards, balancesApi } from "@/features/balances";
+import { useDebounced } from "@/hooks/useDebounced";
+import { usePagedList } from "@/hooks/usePagedList";
 import { useResource } from "@/hooks/useResource";
-import { dateTime, money, type Currency } from "@/lib/format";
+import { dateTime, humanize, money, type Currency } from "@/lib/format";
 import { useEnv } from "@/providers/EnvProvider";
-import { payoutsApi, type Payout } from "../api";
+import { PAYOUT_STATUSES, type Payout } from "../api";
 import { PayoutForm } from "./PayoutForm";
 
 const columns: Column<Payout>[] = [
@@ -20,7 +23,12 @@ export function PayoutsScreen() {
   const { env } = useEnv();
   const [currency, setCurrency] = useState<Currency>("ETB");
   const balance = useResource(() => balancesApi.get(currency, env), [currency, env]);
-  const payouts = useResource(() => payoutsApi.list(env), [env]);
+  const params = useSearchParams(); // global search opens this page with ?q=<id>
+  const [f, setF] = useState({ status: "", q: params.get("q") ?? "" });
+  useEffect(() => { const v = params.get("q"); if (v) setF((cur) => ({ ...cur, q: v })); }, [params]);
+  const q = useDebounced(f.q);
+  const payouts = usePagedList<Payout>("v1/payouts", { environment: env, status: f.status, q });
+  const filtered = f.status || f.q;
 
   return (
     <>
@@ -29,9 +37,18 @@ export function PayoutsScreen() {
         <BalanceCards balance={balance.data} currency={currency} loading={balance.loading && !balance.data} />
         <PayoutForm currency={currency} onCurrency={setCurrency} available={balance.data?.available} onDone={() => { balance.reload(); payouts.reload(); }} />
         <Card title="Payout history" flush>
+          <div className="form-grid" style={{ alignItems: "end", padding: 16 }}>
+            <Select label="Status" value={f.status} placeholder="All statuses" options={PAYOUT_STATUSES.map((s) => ({ value: s, label: humanize(s) }))}
+              onChange={(e) => setF({ ...f, status: e.target.value })} />
+            <Input label="Search" type="search" placeholder="Bank reference, account name or payout ID" value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} />
+            {filtered && <div><Button variant="ghost" onClick={() => setF({ status: "", q: "" })}>Clear filters</Button></div>}
+          </div>
           <ErrorText error={payouts.error} />
-          <DataTable label="Payouts" columns={columns} rows={payouts.data?.data} rowKey={(p) => p.id} loading={payouts.loading}
-            empty={<EmptyState icon="bank" title="No payouts yet" description="Payouts you request appear here with their bank reference." />} />
+          <DataTable label="Payouts" columns={columns} rows={payouts.rows} rowKey={(p) => p.id} loading={payouts.loading}
+            empty={filtered
+              ? <EmptyState icon="search" title="No payouts match" description="Try other filters." />
+              : <EmptyState icon="bank" title="No payouts yet" description="Payouts you request appear here with their bank reference." />} />
+          <LoadMore count={payouts.rows.length} hasMore={payouts.hasMore} loading={payouts.loading} onMore={payouts.loadMore} noun="payouts" />
         </Card>
       </div>
     </>

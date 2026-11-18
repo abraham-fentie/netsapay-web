@@ -1,4 +1,4 @@
-import { api, type Page } from "@/lib/api/client";
+import { api } from "@/lib/api/client";
 
 export type Payout = {
   id: string; environment: string; amount: number; currency: string; status: string;
@@ -10,7 +10,8 @@ export type PayoutInput = {
   bank_account: { bank_name: string; account_number: string; account_name: string };
 };
 
+export const PAYOUT_STATUSES = ["reserving", "requested", "paid", "failed", "rejected"] as const;
+
 export const payoutsApi = {
-  list: (env: string) => api<Page<Payout>>(`v1/payouts?environment=${env}`),
   request: (input: PayoutInput, idempotencyKey: string) => api<Payout>("v1/payouts", { method: "POST", body: input, idempotencyKey }),
 };

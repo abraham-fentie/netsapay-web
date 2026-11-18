@@ -7,6 +7,7 @@ export const navigation: NavGroup[] = [
   { title: "Main", items: [
     { href: "/", label: "Dashboard", icon: "home", keywords: "overview balance home" },
     { href: "/payments", label: "Payments", icon: "card", keywords: "transactions orders" },
+    { href: "/refunds", label: "Refunds", icon: "refresh", keywords: "refund returned money back" },
     { href: "/links", label: "Payment links", icon: "link", keywords: "invoice share" },
     { href: "/payouts", label: "Payouts", icon: "bank", keywords: "withdraw bank transfer settlement" },
     { href: "/disputes", label: "Disputes", icon: "alert", keywords: "chargeback evidence" },

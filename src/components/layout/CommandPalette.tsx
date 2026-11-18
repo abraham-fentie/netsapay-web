@@ -1,12 +1,19 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { StatusBadge } from "@/components/ui";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { KINDS, useGlobalSearch } from "@/features/search";
 import { cx } from "@/lib/cx";
+import { money } from "@/lib/format";
+import { useEnv } from "@/providers/EnvProvider";
 import { navigation } from "./nav";
 import s from "./CommandPalette.module.css";
 
-type Command = { id: string; label: string; hint?: string; icon: IconName; href: string; group: string };
+type Command = {
+  id: string; label: string; hint?: string; icon: IconName; href: string; group: string;
+  sub?: string; amount?: string; status?: string; // search hits
+};
 
 const ACTIONS: Command[] = [
   { id: "a-link", label: "Create a payment link", icon: "plus", href: "/links", group: "Actions" },
@@ -16,12 +23,18 @@ const ACTIONS: Command[] = [
 ];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** ⌘K / Ctrl+K: jump to a page, an action, a payment id or a reference. */
+/**
+ * ⌘K / Ctrl+K: global search. Records (payments, refunds, payouts, disputes,
+ * payment links) come from GET /v1/search as you type; pages and actions
+ * are matched here.
+ */
 export function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
   const [q, setQ] = useState("");
   const [index, setIndex] = useState(0);
+  const { env } = useEnv();
+  const search = useGlobalSearch(open ? q : "", env);
 
   useEffect(() => {
     const d = dialog.current;
@@ -34,11 +47,19 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     const term = q.trim().toLowerCase();
     const pages: Command[] = navigation.flatMap((g) => g.items.map((it) => ({ id: it.href, label: it.label, icon: it.icon, href: it.href, group: "Pages", hint: it.keywords })));
     const all = [...pages, ...ACTIONS].filter((c) => !term || c.label.toLowerCase().includes(term) || c.hint?.includes(term));
-    const found: Command[] = [];
-    if (UUID.test(q.trim())) found.push({ id: "pay-id", label: `Open payment ${q.trim().slice(0, 8)}…`, icon: "card", href: `/payments/${q.trim()}`, group: "Payments" });
-    else if (term.length >= 2) found.push({ id: "pay-ref", label: `Find payments with reference “${q.trim()}”`, icon: "search", href: `/payments?reference=${encodeURIComponent(q.trim())}`, group: "Payments" });
+    const found: Command[] = (search.result?.data ?? []).map((h) => {
+      const k = KINDS[h.kind];
+      return { id: `${h.kind}-${h.id}`, label: h.title, sub: h.subtitle, icon: k.icon, href: k.href(h), group: k.group,
+        amount: h.currency ? money(h.amount, h.currency) : undefined, status: h.status };
+    });
+    if (term.length >= 2) {
+      if (UUID.test(q.trim()) && !found.some((c) => c.id.endsWith(q.trim().toLowerCase()))) {
+        found.push({ id: "pay-id", label: `Open payment ${q.trim().slice(0, 8)}…`, icon: "card", href: `/payments/${q.trim()}`, group: "More" });
+      }
+      found.push({ id: "pay-all", label: `All payments matching “${q.trim()}”`, icon: "search", href: `/payments?q=${encodeURIComponent(q.trim())}`, group: "More" });
+    }
     return [...found, ...all];
-  }, [q]);
+  }, [q, search.result]);
 
   const go = (c?: Command) => { if (!c) return; onClose(); router.push(c.href); };
   const onKey = (e: React.KeyboardEvent) => {
@@ -54,12 +75,15 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       <div className={s.box}>
         <div className={s.inputRow}>
           <Icon name="search" size={18} />
-          <input autoFocus className={s.input} placeholder="Search pages, actions, payment ID or reference…" value={q}
+          <input autoFocus className={s.input} placeholder="Search payments, customers, refunds, payouts, links…" value={q}
             onChange={(e) => { setQ(e.target.value); setIndex(0); }} onKeyDown={onKey}
             role="combobox" aria-expanded="true" aria-controls="cmd-list" aria-activedescendant={results[index] ? `cmd-${results[index].id}` : undefined} />
           <kbd className={s.kbd}>Esc</kbd>
         </div>
         <ul id="cmd-list" role="listbox" className={s.list}>
+          {q.trim().length >= 2 && search.loading && !search.result && <li className={s.empty} role="status">Searching…</li>}
+          {search.error && <li className={s.empty} role="alert">{search.error}</li>}
+          {search.result?.partial && <li className={s.note}>Some results could not be loaded; try again in a moment.</li>}
           {results.length === 0 && <li className={s.empty}>No results for “{q}”.</li>}
           {results.map((c, i) => {
             const header = c.group !== lastGroup ? (lastGroup = c.group) : null;
@@ -68,7 +92,10 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
                 {header && <div className={s.group}>{header}</div>}
                 <div id={`cmd-${c.id}`} role="option" aria-selected={i === index} className={cx(s.option, i === index && s.active)}
                   onMouseMove={() => setIndex(i)} onClick={() => go(c)}>
-                  <Icon name={c.icon} size={16} /><span>{c.label}</span>{i === index && <Icon name="chevronRight" size={15} className={s.enter} />}
+                  <Icon name={c.icon} size={16} />
+                  <span className={s.text}><span className={s.label}>{c.label}</span>{c.sub && <span className={s.sub}>{c.sub}</span>}</span>
+                  {(c.amount || c.status) && <span className={s.meta}>{c.amount && <span className="num small">{c.amount}</span>}{c.status && <StatusBadge status={c.status} />}</span>}
+                  {i === index && <Icon name="chevronRight" size={15} className={s.enter} />}
                 </div>
               </li>
             );

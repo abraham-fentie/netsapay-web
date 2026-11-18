@@ -14,3 +14,9 @@
 .empty { padding: 24px; text-align: center; color: var(--color-text-3); }
 .foot { display: flex; gap: 16px; padding: 10px 16px; border-top: 1px solid var(--color-border); font-size: var(--text-xs); color: var(--color-text-3); background: var(--color-surface-2); }
 .kbd { font-family: var(--font-sans); font-size: 11px; padding: 1px 6px; border-radius: 5px; border: 1px solid var(--color-border-strong); background: var(--color-surface); color: var(--color-text-2); margin-right: 3px; }
+.text { display: flex; flex-direction: column; min-width: 0; }
+.label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sub { font-size: var(--text-xs); color: var(--color-text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.meta { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.meta + .enter { margin-left: 0; }
+.note { padding: 6px 10px; font-size: var(--text-xs); color: var(--color-text-3); }

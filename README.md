@@ -1,19 +1,20 @@
 # Merchant dashboard
 
-The web app merchants use to run their business on paygate. Next.js 16 (App
+The web app merchants use to run their business on Netsa Pay. Next.js 16 (App
 Router), React 19, TypeScript, CSS Modules. No UI library: a small set of
 shared components and design tokens.
 
-It is a separate repository from the paygate API (Go). The two only talk
-over HTTP: this app's server calls the API at `PAYGATE_API_URL`.
+It is a separate repository from the Netsa Pay API (Go). The two only talk
+over HTTP: this app's server calls the API at `NETSAPAY_API_URL`
+(the old name `PAYGATE_API_URL` still works).
 
 ## Run it
 
-Needs Node.js 20.9+ (see `.nvmrc`) and the paygate API running
+Needs Node.js 20.9+ (see `.nvmrc`) and the Netsa Pay API running
 (`go run ./cmd/paygate` in the API repository).
 
 ```bash
-cp .env.example .env.local     # PAYGATE_API_URL=http://localhost:8080
+cp .env.example .env.local     # NETSAPAY_API_URL=http://localhost:8080
 npm install
 npm run dev                    # http://localhost:3000
 ```
@@ -36,7 +37,7 @@ src/
     layout.tsx             theme from cookie, providers
   features/                one folder per business area
     analytics/   dashboard: KPIs, revenue chart, payment methods, verification
-    auth/  balances/  payments/  links/  payouts/
+    auth/  balances/  payments/  refunds/  links/  payouts/  search/
     disputes/  reports/  developers/  kyc/  security/
       api.ts               typed calls to the API for this feature
       components/          the feature's screens and parts
@@ -100,7 +101,7 @@ design tool or designer. Its deliverables use the same token names as the code.
 * **One door to the API.** `/api/proxy/...` adds the token, refreshes it once
   when it expires, and forwards only an allow-list of merchant paths. Staff
   routes (`/admin`) are not reachable from here.
-* **CSRF.** Changes need the `X-Requested-With: paygate-web` header and a
+* **CSRF.** Changes need the `X-Requested-With: netsapay-web` header and a
   same-host `Origin`.
 * **Content-Security-Policy with a per-request nonce** (`src/proxy.ts`): only
   this app's scripts run, no inline scripts, no framing, no foreign
