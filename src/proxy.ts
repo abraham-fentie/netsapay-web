@@ -27,15 +27,29 @@ export function proxy(req: NextRequest) {
   return res;
 }
 
+// Live updates: the browser opens a WebSocket to the API (wss://api...).
+// NETSAPAY_REALTIME_ORIGIN when the browser reaches the API on another host
+// than NETSAPAY_API_URL (e.g. an internal URL server-side); otherwise derived.
+function realtimeOrigin(): string {
+  const raw = process.env.NETSAPAY_REALTIME_ORIGIN || process.env.NETSAPAY_API_URL || process.env.PAYGATE_API_URL || "";
+  try {
+    const u = new URL(raw);
+    return `${u.protocol === "https:" ? "wss:" : "ws:"}//${u.host}`;
+  } catch {
+    return "";
+  }
+}
+
 function contentSecurityPolicy(nonce: string): string {
   const dev = process.env.NODE_ENV !== "production";
+  const ws = realtimeOrigin();
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self'",
-    `connect-src 'self'${dev ? " ws: wss:" : ""}`,
+    `connect-src 'self'${dev ? " ws: wss:" : ws ? ` ${ws}` : ""}`,
     "object-src 'none'",
     "base-uri 'none'",
     "form-action 'self'",

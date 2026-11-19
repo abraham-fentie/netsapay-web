@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Alert, Button, ErrorText, Menu, MenuItem, Segmented } from "@/components/ui";
 import { paymentsApi, TransactionsTable } from "@/features/payments";
 import { useResource } from "@/hooks/useResource";
+import { useLive } from "@/providers/RealtimeProvider";
 import { CURRENCIES, type Currency } from "@/lib/format";
 import { useEnv } from "@/providers/EnvProvider";
 import { isVerified, useSession } from "@/providers/SessionProvider";
@@ -30,6 +31,8 @@ export function DashboardScreen() {
   const [metric, setMetric] = useState<Metric>("revenue");
   const { stats, loading, error, reload } = useDashboardStats(env, currency, period);
   const recent = useResource(() => paymentsApi.list(new URLSearchParams({ environment: env, limit: "8" })), [env]);
+  // Numbers and recent payments follow live (coalesced: a burst refreshes once).
+  useLive(["payment.updated", "refund.updated"], () => { reload(); recent.reload(); }, { debounceMs: 1500 });
   const first = me?.name?.split(/\s+/)[0];
 
   return (

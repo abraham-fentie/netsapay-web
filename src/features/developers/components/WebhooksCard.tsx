@@ -12,7 +12,8 @@ export function WebhooksCard() {
   const endpoints = useResource(() => developersApi.endpoints(), []);
   const [df, setDf] = useState({ status: "", q: "" });
   const dq = useDebounced(df.q);
-  const deliveries = usePagedList<Delivery>("v1/webhook-deliveries", { status: df.status, q: dq });
+  const deliveries = usePagedList<Delivery>("v1/webhook-deliveries", { status: df.status, q: dq }, 25,
+    { types: ["payment.updated", "refund.updated", "payout.updated", "dispute.updated"] }); // each event makes deliveries
   const [url, setUrl] = useState("");
   const [secret, setSecret] = useState<{ title: string; value: string } | null>(null);
   const { busy, error, setError, run } = useAction();

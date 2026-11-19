@@ -4,6 +4,7 @@ import Link from "next/link";
 import { disputesApi } from "@/features/disputes/api";
 import { useAction } from "@/hooks/useAction";
 import { useResource } from "@/hooks/useResource";
+import { useLive } from "@/providers/RealtimeProvider";
 import { dateTime, humanize, money } from "@/lib/format";
 import { paymentsApi } from "../api";
 import type { Refund } from "../types";
@@ -17,6 +18,11 @@ export function PaymentDetailScreen({ id }: { id: string }) {
   // shown and the API still refuses to refund disputed money.
   const disputes = useResource(() => disputesApi.forPayment(id), [id]);
   const p = payment.data;
+  // This payment changed elsewhere (provider, refund, dispute): show it now.
+  // (Hooks run before any early return.)
+  useLive(["payment.updated", "refund.updated", "dispute.updated"],
+    () => { payment.reload(); events.reload(); refunds.reload(); disputes.reload(); },
+    { match: (e) => e.id === id || e.payment_id === id });
   const check = useAction();
   const toast = useToast();
   const back = { href: "/payments", label: "Payments" };

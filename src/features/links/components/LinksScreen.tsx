@@ -18,7 +18,8 @@ export function LinksScreen() {
   const [f, setF] = useState({ status: "", q: params.get("q") ?? "" });
   useEffect(() => { const v = params.get("q"); if (v) setF((cur) => ({ ...cur, q: v })); }, [params]);
   const q = useDebounced(f.q);
-  const links = usePagedList<PaymentLink>("v1/payment-links", { environment: env, status: f.status, q });
+  const links = usePagedList<PaymentLink>("v1/payment-links", { environment: env, status: f.status, q }, 25,
+    { types: ["payment.updated"], match: (e) => !!e.link_id }); // "Paid" counts update live
   const filtered = f.status || f.q;
   const confirm = useConfirm();
   const toast = useToast();

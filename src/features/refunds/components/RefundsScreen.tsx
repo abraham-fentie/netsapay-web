@@ -31,7 +31,8 @@ export function RefundsScreen() {
   const { env } = useEnv();
   const [f, setF] = useState(empty);
   const q = useDebounced(f.q);
-  const list = usePagedList<Refund>("v1/refunds", { environment: env, status: f.status, q, created_from: dayStart(f.from), created_to: dayEnd(f.to) });
+  const list = usePagedList<Refund>("v1/refunds", { environment: env, status: f.status, q, created_from: dayStart(f.from), created_to: dayEnd(f.to) },
+    25, { types: ["refund.updated", "payment.updated"], match: (e) => e.type === "refund.updated" || /refund/.test(e.status ?? "") });
   const filtered = f.status || f.q || f.from || f.to;
 
   return (

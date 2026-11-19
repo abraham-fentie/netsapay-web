@@ -6,6 +6,7 @@ import { BalanceCards, balancesApi } from "@/features/balances";
 import { useDebounced } from "@/hooks/useDebounced";
 import { usePagedList } from "@/hooks/usePagedList";
 import { useResource } from "@/hooks/useResource";
+import { useLive } from "@/providers/RealtimeProvider";
 import { dateTime, humanize, money, type Currency } from "@/lib/format";
 import { useEnv } from "@/providers/EnvProvider";
 import { PAYOUT_STATUSES, type Payout } from "../api";
@@ -27,7 +28,9 @@ export function PayoutsScreen() {
   const [f, setF] = useState({ status: "", q: params.get("q") ?? "" });
   useEffect(() => { const v = params.get("q"); if (v) setF((cur) => ({ ...cur, q: v })); }, [params]);
   const q = useDebounced(f.q);
-  const payouts = usePagedList<Payout>("v1/payouts", { environment: env, status: f.status, q });
+  const payouts = usePagedList<Payout>("v1/payouts", { environment: env, status: f.status, q }, 25, { types: ["payout.updated"] });
+  // The balance moves with payments, refunds and payouts.
+  useLive(["payment.updated", "refund.updated", "payout.updated"], () => balance.reload(), { debounceMs: 800 });
   const filtered = f.status || f.q;
 
   return (

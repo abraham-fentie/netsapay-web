@@ -6,7 +6,7 @@ import { callAPI, readJSON } from "@/lib/server/upstream";
 
 // The dashboard's only way to the Go API. Allow-list: merchant routes and the
 // user's own profile / MFA / password. Never /admin (staff have their own console).
-const ALLOWED = [/^v1\//, /^auth\/me$/, /^auth\/mfa(\/totp\/(setup|confirm|disable))?$/, /^auth\/password$/];
+const ALLOWED = [/^v1\//, /^auth\/me$/, /^auth\/mfa(\/totp\/(setup|confirm|disable))?$/, /^auth\/password(\/verify)?$/];
 const MAX_BODY = 30 * 1024 * 1024; // dispute evidence: 5 files of 5 MB plus form overhead
 
 async function handle(req: Request, ctx: { params: Promise<{ path: string[] }> }) {

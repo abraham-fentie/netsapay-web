@@ -116,11 +116,15 @@ export function Input({ label, hint, error, optional, className, otp, id, valid,
   );
 }
 
-export function PasswordInput(props: Omit<InputProps, "type">) {
+/**
+ * A password field. reveal=false hides the "show password" button (e.g. for
+ * the current password, so nobody at an unlocked screen can read it).
+ */
+export function PasswordInput(props: Omit<InputProps, "type"> & { reveal?: boolean }) {
   const [show, setShow] = useState(false);
   const auto = useId();
   const fid = props.id ?? auto;
-  const { label, hint, error, optional, className, valid, mark, otp: _otp, onBlur, onChange, onInvalid, ...rest } = props;
+  const { label, hint, error, optional, className, valid, mark, otp: _otp, onBlur, onChange, onInvalid, reveal = true, ...rest } = props;
   const v = useValidation<HTMLInputElement>({ onBlur, onChange, onInvalid });
   const shownError = error || v.message;
   const ok = !!valid && !shownError;
@@ -130,9 +134,11 @@ export function PasswordInput(props: Omit<InputProps, "type">) {
         <input {...rest} {...v.handlers} id={fid} type={show ? "text" : "password"} className={s.control} data-valid={ok || undefined}
           aria-invalid={shownError ? true : undefined} aria-describedby={describedBy(fid, shownError, hint, rest["aria-describedby"])} />
         {ok && <ValidMark />}
-        <button type="button" className={s.action} onClick={() => setShow((x) => !x)} aria-label={show ? "Hide password" : "Show password"}>
-          <Icon name={show ? "eyeOff" : "eye"} size={17} />
-        </button>
+        {reveal && (
+          <button type="button" className={s.action} onClick={() => setShow((x) => !x)} aria-label={show ? "Hide password" : "Show password"}>
+            <Icon name={show ? "eyeOff" : "eye"} size={17} />
+          </button>
+        )}
       </div>
     </Field>
   );

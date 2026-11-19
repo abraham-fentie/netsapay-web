@@ -34,7 +34,7 @@ export function PaymentsScreen() {
     // One box for the customer: an email address or an Ethiopian phone number.
     [customer.includes("@") ? "customer_email" : "customer_phone"]: customer,
     created_from: dayStart(f.from), created_to: dayEnd(f.to),
-  }, 50);
+  }, 50, { types: ["payment.updated", "refund.updated"] }); // new and changed payments appear by themselves
   const filtered = Object.values(f).some(Boolean);
 
   return (

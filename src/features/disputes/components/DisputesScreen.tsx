@@ -22,7 +22,7 @@ export function DisputesScreen() {
   const { env } = useEnv();
   const [f, setF] = useState({ status: "", q: "" });
   const q = useDebounced(f.q);
-  const list = usePagedList<Dispute>("v1/disputes", { environment: env, status: f.status, q });
+  const list = usePagedList<Dispute>("v1/disputes", { environment: env, status: f.status, q }, 25, { types: ["dispute.updated"] });
   const filtered = f.status || f.q;
   return (
     <>
